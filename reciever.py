@@ -1,0 +1,17 @@
+import node
+import distributor
+import os
+
+def rec(my_ip):
+    print("---RECEIVER STARTED---")
+    while True:
+        message, address = node.receive()
+        print(f"Message from {address} , {message}\n")
+        with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "a") as file:
+            file.write(f"{address[0]} {' '.join(message)}\n")
+        with open(f"{os.path.dirname(__file__)}./relay_messages.txt", "a") as file:
+            file.write(f"{address[0]} {' '.join(message)}\n")
+
+
+if __name__ == "__main__":
+    rec("192.168.68.112")
