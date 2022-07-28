@@ -305,6 +305,7 @@ def announce(pub_key, port, version, node_type, priv_key):
     if not isinstance(priv_key, bytes):
         priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
     sig = str(priv_key.sign(announcement_time.encode()).hex())
+    print(f"HELLO {announcement_time} {pub_key} {str(port)} {version} {node_type} {sig}")
     asyncio.run(send_to_all(f"HELLO {announcement_time} {pub_key} {str(port)} {version} {node_type} {sig}"))
 
 
