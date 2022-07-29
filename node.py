@@ -107,6 +107,7 @@ def online(address):
     #socket.setdefaulttimeout(3.0)
     time.sleep(5)
     message = request_reader("YH", ip=address)
+    print("mess ", message)
     if message:
         message = message[0].split(" ")
         if message[1] == "yh":

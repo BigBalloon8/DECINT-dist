@@ -2,7 +2,7 @@ import node
 import distributor
 import os
 
-def rec(my_ip):
+def rec():
     print("---RECEIVER STARTED---")
     while True:
         message, address = node.receive()

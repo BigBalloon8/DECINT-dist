@@ -6,6 +6,9 @@ import pickle
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import boot
 import os
+from multiprocessing import Process
+import reciever
+
 
 @click.command()
 @click.option("--install", "-i", is_flag=True, help="Will Install DecInt")
@@ -16,15 +19,19 @@ import os
 def run(install, update, delete, run_node, test_install):
 
     if install:
+        Process(target=reciever.rec).start()
+        node.get_nodes()
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             key = file.read()
         if not key:
-            node.get_nodes()
+            #node.get_nodes()
             install_decint.run()
         else:
             click.echo("DECINT is already installed (if DECINT is not installed run install_decint.py)\n")
+        exit()
 
     elif update:
+        Process(target=reciever.rec).start()
         node.get_nodes()
         click.echo("In order to update your Node please enter a bit of information")
         time.sleep(2)
@@ -38,8 +45,10 @@ def run(install, update, delete, run_node, test_install):
         new_key = click.prompt("Enter New Public Key")
         priv_key = click.prompt("Enter Private Key")
         node.update(pub_key, port, version, priv_key, new_key)
+        exit()
 
     elif delete:
+        Process(target=reciever.rec).start()
         node.get_nodes()
         click.echo("In order to delete your Node please enter a bit of information")
         time.sleep(2)
@@ -47,10 +56,13 @@ def run(install, update, delete, run_node, test_install):
             pub_key = file.read()
         priv_key = click.prompt("Private Key", type=str)
         node.delete(pub_key, priv_key)
+        exit()
 
     elif test_install:
+        Process(target=reciever.rec).start()
         node.get_nodes()
         install_decint.test_install()
+        exit()
 
     elif run_node:
         boot.run()

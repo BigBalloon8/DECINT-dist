@@ -10,7 +10,7 @@ def relay():
     logging.basicConfig(filename='relay.log',filemode='a', format='%(asctime)s  :  %(message)s', datefmt='%d-%b-%Y %H:%M:%S %p')  
     while True:
         with open(f"{os.path.dirname(__file__)}./info/relay_messages.txt", "w+") as file:
-            messages = file.read().split("\n")
+            messages = file.read().splitlines()
             file.write("")
         for message in messages:
             logging.info(message)
