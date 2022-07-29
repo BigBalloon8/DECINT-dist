@@ -19,7 +19,8 @@ import reciever
 def run(install, update, delete, run_node, test_install):
 
     if install:
-        Process(target=reciever.rec).start()
+        receive = Process(target=reciever.rec)
+        receive.start()
         node.get_nodes()
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             key = file.read()
@@ -28,10 +29,11 @@ def run(install, update, delete, run_node, test_install):
             install_decint.run()
         else:
             click.echo("DECINT is already installed (if DECINT is not installed run install_decint.py)\n")
-        exit()
+        receive.terminate()
 
     elif update:
-        Process(target=reciever.rec).start()
+        receive = Process(target=reciever.rec)
+        receive.start()
         node.get_nodes()
         click.echo("In order to update your Node please enter a bit of information")
         time.sleep(2)
@@ -45,10 +47,11 @@ def run(install, update, delete, run_node, test_install):
         new_key = click.prompt("Enter New Public Key")
         priv_key = click.prompt("Enter Private Key")
         node.update(pub_key, port, version, priv_key, new_key)
-        exit()
+        receive.terminate()
 
     elif delete:
-        Process(target=reciever.rec).start()
+        receive = Process(target=reciever.rec)
+        receive.start()
         node.get_nodes()
         click.echo("In order to delete your Node please enter a bit of information")
         time.sleep(2)
@@ -56,7 +59,7 @@ def run(install, update, delete, run_node, test_install):
             pub_key = file.read()
         priv_key = click.prompt("Private Key", type=str)
         node.delete(pub_key, priv_key)
-        exit()
+        receive.terminate()
 
     elif test_install:
         Process(target=reciever.rec).start()
