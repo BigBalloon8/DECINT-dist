@@ -97,25 +97,14 @@ def online(address):
     asks if a node is online and if it is it returns yh
     """
     print(address)
-    #socket.setdefaulttimeout(1.0)
+    # socket.setdefaulttimeout(1.0)
     try:
         send(address, "ONLINE?")
+        return True
     except Exception as e:
-        #socket.setdefaulttimeout(3.0)
+        # socket.setdefaulttimeout(3.0)
         print(e)
         return False
-    #socket.setdefaulttimeout(3.0)
-    time.sleep(5)
-    message = request_reader("YH", ip=address)
-    print("mess ", message)
-    if message:
-        message = message[0].split(" ")
-        if message[1] == "yh":
-            return True
-    else:
-        print("L")
-        return False
-
 
 def rand_act_node(num_nodes=1):
     """
@@ -333,6 +322,7 @@ def delete(pub_key, priv_key):
 def get_nodes():
     print("---GETTING NODES---")
     node = rand_act_node()
+    time.sleep(0.1)
     send(node["ip"], "GET_NODES")
     tries = 0
     while True:
@@ -381,6 +371,7 @@ def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
         nodes.append(new_node)
         with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
             pickle.dump(nodes, file)
+        print("---NODE ADDED---")
     except Exception as e:
         print(e)
         return "node invalid"
