@@ -13,9 +13,7 @@ announce self and time of creation
 """
 
 def priv_key_gen():
-    seed = os.urandom(SECP112r2.baselen)
-    secexp = randrange_from_seed__trytryagain(seed, SECP112r2.order)
-    key = SigningKey.from_secret_exponent(secexp, curve=SECP112r2)
+    key = SigningKey.generate(curve=SECP112r2)
     hex_key = key.to_string().hex()
     return key, hex_key
 

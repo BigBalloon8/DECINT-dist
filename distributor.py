@@ -6,7 +6,7 @@ import os
 #send to all non dist nodes
 
 def relay():
-    do_not_send = ["NREQ","NODES?", "GET_NODES", "ONLINE?", "yh", "ERROR", "BLOCKCHAIN?", "BREQ"]
+    do_not_send = ["NREQ", "NODES?", "GET_NODES", "ONLINE?", "yh", "ERROR", "BLOCKCHAIN?", "BREQ", "HELLO", "UPDATE", "DELETE"]
     logging.basicConfig(filename='relay.log',filemode='a', format='%(asctime)s  :  %(message)s', datefmt='%d-%b-%Y %H:%M:%S %p')  
     while True:
         with open(f"{os.path.dirname(__file__)}./info/relay_messages.txt", "w+") as file:

@@ -45,23 +45,22 @@ def send(host, message, port=1379, send_all=False):
     try:
         client.connect((host, port))
         client.send(message.encode("utf-8"))
-        #print(f"Message to {host} {message}\n")
+        print(f"Message to {host} {message}\n")
         return
-    except Exception as e:
+    except ConnectionRefusedError:
         if not send_all:
-            if isinstance(e, ConnectionRefusedError):
-                try:
-                    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
-                        nodes = pickle.load(file)
-                    for node in nodes:
-                        if node[1] == host:
-                            if not int(node["port"]) == 1379:
-                                client.connect((host, int(node["port"])))
-                                client.send(message.encode("utf-8"))
-                                #print(f"Message to {host} {message}\n")
-                                return
-                except ConnectionRefusedError as e:
-                    return "node offline"
+            try:
+                with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+                    nodes = pickle.load(file)
+                for node in nodes:
+                    if node["ip"] == host:
+                        if not int(node["port"]) == 1379:
+                            client.connect((host, int(node["port"])))
+                            client.send(message.encode("utf-8"))
+                            # print(f"Message to {host} {message}\n")
+                            return
+            except ConnectionRefusedError:
+                return "node offline"
 
 async def async_send(host, message, port=1379, send_all=False):
     """
@@ -325,9 +324,7 @@ def get_nodes():
     time.sleep(0.1)
     send(node["ip"], "GET_NODES")
     tries = 0
-    while True:
-        if tries == 10:
-            quit()
+    while tries < 10:
         time.sleep(5)
         lines = request_reader("NREQ")
         if lines:
@@ -359,8 +356,7 @@ def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
     with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
         nodes = pickle.load(file)
     public_key = VerifyingKey.from_string(bytes.fromhex(pub_key), curve=SECP112r2)
-    try:
-        assert public_key.verify(bytes.fromhex(sig), str(initiation_time).encode())
+    if public_key.verify(bytes.fromhex(sig), str(initiation_time).encode()):
         new_node = {"time": initiation_time, "ip": ip, "pub_key": pub_key, "port": port, "version": node_version,
                     "node_type": node_type}
         for node in nodes:
@@ -372,8 +368,7 @@ def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
         with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
             pickle.dump(nodes, file)
         print("---NODE ADDED---")
-    except Exception as e:
-        print(e)
+    else:
         return "node invalid"
 
 

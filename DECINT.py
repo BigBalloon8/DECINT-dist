@@ -11,14 +11,14 @@ import reciever
 
 
 @click.command()
-@click.option("--install", "-i", is_flag=True, help="Will Install DecInt")
+@click.option("--d_install", "-i", is_flag=True, help="Will Install DecInt")
 @click.option("--update", "-u", is_flag=True, help="Will send Update protocol to other nodes")
 @click.option("--delete", "-d", is_flag=True, help="Will send Delete protocol to other nodes")
 @click.option("--run_node", "-r", is_flag=True, help="Will run node, you can also give no option to do the same thing")
 @click.option("--test_install", "-ti", is_flag=True)
-def run(install, update, delete, run_node, test_install):
+def run(d_install, update, delete, run_node, test_install):
 
-    if install:
+    if d_install:
         receive = Process(target=reciever.rec)
         receive.start()
         node.get_nodes()
@@ -62,10 +62,11 @@ def run(install, update, delete, run_node, test_install):
         receive.terminate()
 
     elif test_install:
-        Process(target=reciever.rec).start()
+        receive = Process(target=reciever.rec)
+        receive.start()
         node.get_nodes()
         install_decint.test_install()
-        exit()
+        receive.terminate()
 
     elif run_node:
         boot.run()
