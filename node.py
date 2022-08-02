@@ -285,8 +285,11 @@ async def send_to_all_no_dist(message):
     """
     with open("./info/Nodes.pickle", "rb") as file:
         all_nodes = pickle.load(file)
-    for f in asyncio.as_completed([async_send(node_["ip"], message, port=node_["port"], send_all=True) for node_ in all_nodes if node_["type"] != "dist"]):
-        result = await f
+    loop = asyncio.get_event_loop()
+    for node_ in [node_ for node_ in all_nodes if node_["node_type"] != "dist"]:
+        asyncio.ensure_future(async_send(node_["ip"], message, port=node_["port"], send_all=True))
+    await asyncio.gather(*asyncio.Task.all_tasks())  # wait for all to finish
+    loop.close()
 
 
 def announce(pub_key, port, version, node_type, priv_key):
@@ -383,7 +386,7 @@ def update_node(ip, update_time, old_key, new_key, port, node_version, sig):
                 node["pub_key"] = new_key
                 node["port"] = port
                 node["version"] = node_version
-        with open("info/Nodes.pickle", "wb") as file:
+        with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
             pickle.dump(nodes, file)
             print("NODE UPDATED")
     except:
@@ -398,8 +401,8 @@ def delete_node(deletion_time, ip, pub_key, sig):
         assert public_key.verify(bytes.fromhex(sig), str(deletion_time).encode())
         for node in nodes:
             if node["ip"] == ip and node["pub_key"] == pub_key:
-                del node
-        with open("info/Nodes.pickle", "wb") as file:
+                nodes.remove(node)
+        with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
             pickle.dump(nodes, file)
     except:
         return "cancel invalid"
@@ -407,7 +410,7 @@ def delete_node(deletion_time, ip, pub_key, sig):
 
 
 def version_update(ip, ver):
-    with open("./info/Nodes.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
         nodes = pickle.load(file)
     for nod in nodes:
         if nod["ip"] == ip:
@@ -430,7 +433,7 @@ class ValueTypeError(NodeError):
 class UnrecognisedArg(NodeError):
     pass
 
-#  TODO add AI_JOB protocols
+#  TODO add AI_JOB protocols and make better
 def message_handler(message):
     try:
         if isinstance(message,str):
@@ -552,11 +555,11 @@ def message_handler(message):
             raise ValueTypeError("version not given as float")
 
     elif protocol == "DELETE":
-        # host, DELETE, public key, sig
-        if len(message) != 4:
+        # host, DELETE, time, public key, sig
+        if len(message) != 5:
             raise UnrecognisedArg("number of args given incorrect")
 
-        if len(message[2]) != 56:
+        if len(message[3]) != 56:
             raise UnrecognisedArg("Public Key is the wrong size")
 
     elif protocol == "BREQ":
@@ -602,6 +605,12 @@ def message_handler(message):
         pass
 
     elif protocol == "yh":
+        pass
+
+    elif protocol == "STAKE":
+        pass
+
+    elif protocol == "UNSTAKE":
         pass
 
     #elif protocol == ""

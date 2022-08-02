@@ -13,7 +13,8 @@ update tensorflow
 update Blockchain and nodes
 """
 def run():
-    open("recent_messages.txt", "w").close()#clear recent message file
+    open(f"{os.path.dirname(__file__)}./recent_messages.txt", "w").close()#clear recent message file
+    open(f"{os.path.dirname(__file__)}./relay_messages.txt", "w").close()
     local_ip = socket.gethostbyname(socket.gethostname())
     #os.system("pip3 install --upgrade ecdsa")
 
@@ -27,10 +28,11 @@ def run():
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.submit(reciever.rec)#start recieving
-        executor.submit(node.get_nodes)#update nodes
+        executor.submit(pre_reader.read)
+        executor.submit(node.get_nodes).result()#update nodes
         executor.submit(reader.read)
         executor.submit(distributor.relay)
-        executor.submit(pre_reader.read)
+
 
 
 
