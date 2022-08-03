@@ -50,7 +50,7 @@ def send(host, message, port=1379, send_all=False):
     except ConnectionRefusedError:
         if not send_all:
             try:
-                with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+                with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
                     nodes = pickle.load(file)
                 for node in nodes:
                     if node["ip"] == host:
@@ -78,7 +78,7 @@ async def async_send(host, message, port=1379, send_all=False):
         if not send_all:
             if isinstance(e, ConnectionRefusedError):
                 try:
-                    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+                    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
                         nodes = pickle.load(file)
                     for node in nodes:
                         if node[1] == host:
@@ -109,12 +109,12 @@ def rand_act_node(num_nodes=1):
     """
     returns a list of random active nodes which is x length
     """
-    with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
         key = file.read()
     nodes = []
     i = 0
     while i != num_nodes:  # turn into for loop
-        with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
             all_nodes = pickle.load(file)
         me = socket.gethostbyname(socket.gethostname())
         node_index = random.randint(0, len(all_nodes) - 1)
@@ -178,15 +178,15 @@ def request_reader(type, ip="192.168.68.1"):
         if type == "YH":
             if len(yh_lines) != 0:
                 new_lines = []
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "r") as file:
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
                     file_lines = file.readlines()
                 for f_line in file_lines:
                     f_line.split(" ")
                     if not yh_lines[0] in f_line:
                         if not f_line.strip("\n") == "":
                             new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}./recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "a") as file:
+                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
                     for n_line in new_lines:
                         file.write(n_line)
             return yh_lines
@@ -194,15 +194,15 @@ def request_reader(type, ip="192.168.68.1"):
         elif type == "NODE":
             if len(node_lines) != 0:
                 new_lines = []
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "r") as file:
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
                     file_lines = file.readlines()
                 for f_line in file_lines:
                     f_line.split(" ")
                     if not node_lines[0] in f_line:
                         if not f_line.strip("\n") == "":
                             new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}./recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "a") as file:
+                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
                     for n_line in new_lines:
                         file.write(n_line)
             return node_lines
@@ -210,15 +210,15 @@ def request_reader(type, ip="192.168.68.1"):
         elif type == "NREQ":
             if len(nreq_lines) != 0:
                 new_lines = []
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "r+") as file:
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r+") as file:
                     file_lines = file.readlines()
                 for f_line in file_lines:
                     f_line.split(" ")
                     if not nreq_lines[0] in f_line:
                         if not f_line.strip("\n") == "":
                             new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}./recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "a") as file:
+                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
                     for n_line in new_lines:
                         file.write(n_line)
             return nreq_lines
@@ -226,15 +226,15 @@ def request_reader(type, ip="192.168.68.1"):
         elif type == "ONLINE":
             if len(online_lines) != 0:
                 new_lines = []
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "r+") as file:
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r+") as file:
                     file_lines = file.readlines()
                 for f_line in file_lines:
                     f_line.split(" ")
                     if not online_lines[0] in f_line:
                         if not f_line.strip("\n") == "":
                             new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}./recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "a") as file:
+                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
                     for n_line in new_lines:
                         file.write(n_line)
             return online_lines
@@ -242,14 +242,14 @@ def request_reader(type, ip="192.168.68.1"):
         elif type == "TRANS":
             if len(trans_lines) != 0:
                 new_lines = []
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "r") as file:
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
                     file_lines = file.readlines()
                 for f_line in file_lines:
                     if not trans_lines[0] in f_line:  # update to check multiple lines to lazy to do rn
                         if not f_line.strip("\n") == "":
                             new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}./recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "a") as file:
+                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
                     for n_line in new_lines:
                         file.write(n_line)
             return trans_lines
@@ -257,14 +257,14 @@ def request_reader(type, ip="192.168.68.1"):
         elif type == "BREQ":
             if len(breq_lines) != 0:
                 new_lines = []
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "r") as file:
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
                     file_lines = file.readlines()
                 for f_line in file_lines:
                     if not breq_lines[0] in f_line:  # update to check multiple lines to lazy to do rn
                         if not f_line.strip("\n") == "":
                             new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}./recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}./recent_messages.txt", "a") as file:
+                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
                     for n_line in new_lines:
                         file.write(n_line)
             return breq_lines
@@ -274,7 +274,7 @@ async def send_to_all(message):
     """
     sends to all nodes
     """
-    with open("./info/Nodes.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
         all_nodes = pickle.load(file)
     for f in asyncio.as_completed([async_send(node_["ip"], message, port=node_["port"], send_all=True) for node_ in all_nodes]):
         result = await f
@@ -283,7 +283,7 @@ async def send_to_all_no_dist(message):
     """
     sends to all nodes
     """
-    with open("./info/Nodes.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
         all_nodes = pickle.load(file)
     loop = asyncio.get_event_loop()
     for node_ in [node_ for node_ in all_nodes if node_["node_type"] != "dist"]:
@@ -309,7 +309,7 @@ def update(old_key, port, version, priv_key, new_key=None):
         priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
     sig = str(priv_key.sign(update_time.encode()).hex())
     asyncio.run(send_to_all(f"UPDATE {update_time} {old_key} {new_key} {str(port)} {version} {sig}"))
-    with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "w") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "w") as file:
         file.write(new_key)
 
 
@@ -337,7 +337,7 @@ def get_nodes():
                 nodes = line[2]
                 nodes = ast.literal_eval(nodes)
                 if line[0] == node["ip"]:
-                    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
+                    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "wb") as file:
                         pickle.dump(nodes, file)
                     print("---NODES RECEIVED---")
                     print("NODES UPDATED SUCCESSFULLY")
@@ -348,7 +348,7 @@ def get_nodes():
 
 
 def send_node(host):
-    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
         Nodes = pickle.load(file)
     str_node = str(Nodes)
     str_node = str_node.replace(" ", "")
@@ -356,7 +356,7 @@ def send_node(host):
 
 
 def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
-    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
         nodes = pickle.load(file)
     public_key = VerifyingKey.from_string(bytes.fromhex(pub_key), curve=SECP112r2)
     if public_key.verify(bytes.fromhex(sig), str(initiation_time).encode()):
@@ -368,7 +368,7 @@ def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
             if node["ip"] == ip:
                 return
         nodes.append(new_node)
-        with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "wb") as file:
             pickle.dump(nodes, file)
         print("---NODE ADDED---")
     else:
@@ -376,7 +376,7 @@ def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
 
 
 def update_node(ip, update_time, old_key, new_key, port, node_version, sig):
-    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
         nodes = pickle.load(file)
     public_key = VerifyingKey.from_string(bytes.fromhex(old_key), curve=SECP112r2)
     try:
@@ -386,7 +386,7 @@ def update_node(ip, update_time, old_key, new_key, port, node_version, sig):
                 node["pub_key"] = new_key
                 node["port"] = port
                 node["version"] = node_version
-        with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "wb") as file:
             pickle.dump(nodes, file)
             print("NODE UPDATED")
     except:
@@ -394,7 +394,7 @@ def update_node(ip, update_time, old_key, new_key, port, node_version, sig):
 
 
 def delete_node(deletion_time, ip, pub_key, sig):
-    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
         nodes = pickle.load(file)
     public_key = VerifyingKey.from_string(bytes.fromhex(pub_key), curve=SECP112r2)
     try:
@@ -402,7 +402,7 @@ def delete_node(deletion_time, ip, pub_key, sig):
         for node in nodes:
             if node["ip"] == ip and node["pub_key"] == pub_key:
                 nodes.remove(node)
-        with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "wb") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "wb") as file:
             pickle.dump(nodes, file)
     except:
         return "cancel invalid"
@@ -410,7 +410,7 @@ def delete_node(deletion_time, ip, pub_key, sig):
 
 
 def version_update(ip, ver):
-    with open(f"{os.path.dirname(__file__)}./info/Nodes.pickle", "rb") as file:
+    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
         nodes = pickle.load(file)
     for nod in nodes:
         if nod["ip"] == ip:

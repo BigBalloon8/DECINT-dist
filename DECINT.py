@@ -37,7 +37,7 @@ def run(d_install, update, delete, run_node, test_install):
         node.get_nodes()
         click.echo("In order to update your Node please enter a bit of information")
         time.sleep(2)
-        with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
         click.echo("\nLeave Port blank to use default")
         port = click.prompt("Enter Port", default="1379")
@@ -55,7 +55,7 @@ def run(d_install, update, delete, run_node, test_install):
         node.get_nodes()
         click.echo("In order to delete your Node please enter a bit of information")
         time.sleep(2)
-        with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
+        with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
             pub_key = file.read()
         priv_key = click.prompt("Private Key", type=str)
         node.delete(pub_key, priv_key)
