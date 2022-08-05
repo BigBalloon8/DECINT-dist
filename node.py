@@ -4,13 +4,13 @@ node
 
 import socket
 import random
-import pickle
 import time
 import ast
 import time
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import asyncio
 import os
+import json
 
 __version__ = "1.0"
 
@@ -50,8 +50,8 @@ def send(host, message, port=1379, send_all=False):
     except ConnectionRefusedError:
         if not send_all:
             try:
-                with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-                    nodes = pickle.load(file)
+                with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                    nodes = json.load(file)
                 for node in nodes:
                     if node["ip"] == host:
                         if not int(node["port"]) == 1379:
@@ -78,8 +78,8 @@ async def async_send(host, message, port=1379, send_all=False):
         if not send_all:
             if isinstance(e, ConnectionRefusedError):
                 try:
-                    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-                        nodes = pickle.load(file)
+                    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                        nodes = json.load(file)
                     for node in nodes:
                         if node[1] == host:
                             if not int(node["port"]) == 1379:
@@ -114,8 +114,8 @@ def rand_act_node(num_nodes=1):
     nodes = []
     i = 0
     while i != num_nodes:  # turn into for loop
-        with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-            all_nodes = pickle.load(file)
+        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+            all_nodes = json.load(file)
         me = socket.gethostbyname(socket.gethostname())
         node_index = random.randint(0, len(all_nodes) - 1)
         node = all_nodes[node_index]
@@ -274,8 +274,8 @@ async def send_to_all(message):
     """
     sends to all nodes
     """
-    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-        all_nodes = pickle.load(file)
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        all_nodes = json.load(file)
     for f in asyncio.as_completed([async_send(node_["ip"], message, port=node_["port"], send_all=True) for node_ in all_nodes]):
         result = await f
 
@@ -283,8 +283,8 @@ async def send_to_all_no_dist(message):
     """
     sends to all nodes
     """
-    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-        all_nodes = pickle.load(file)
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        all_nodes = json.load(file)
     loop = asyncio.get_event_loop()
     for node_ in [node_ for node_ in all_nodes if node_["node_type"] != "dist"]:
         asyncio.ensure_future(async_send(node_["ip"], message, port=node_["port"], send_all=True))
@@ -337,8 +337,8 @@ def get_nodes():
                 nodes = line[2]
                 nodes = ast.literal_eval(nodes)
                 if line[0] == node["ip"]:
-                    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "wb") as file:
-                        pickle.dump(nodes, file)
+                    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
+                        json.dump(nodes, file)
                     print("---NODES RECEIVED---")
                     print("NODES UPDATED SUCCESSFULLY")
                     return
@@ -348,16 +348,16 @@ def get_nodes():
 
 
 def send_node(host):
-    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-        Nodes = pickle.load(file)
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        Nodes = json.load(file)
     str_node = str(Nodes)
     str_node = str_node.replace(" ", "")
     send(host, "NREQ " + str_node)
 
 
 def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
-    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-        nodes = pickle.load(file)
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        nodes = json.load(file)
     public_key = VerifyingKey.from_string(bytes.fromhex(pub_key), curve=SECP112r2)
     if public_key.verify(bytes.fromhex(sig), str(initiation_time).encode()):
         new_node = {"time": initiation_time, "ip": ip, "pub_key": pub_key, "port": port, "version": node_version,
@@ -368,16 +368,16 @@ def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
             if node["ip"] == ip:
                 return
         nodes.append(new_node)
-        with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "wb") as file:
-            pickle.dump(nodes, file)
+        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
+            json.dump(nodes, file)
         print("---NODE ADDED---")
     else:
         return "node invalid"
 
 
 def update_node(ip, update_time, old_key, new_key, port, node_version, sig):
-    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-        nodes = pickle.load(file)
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        nodes = json.load(file)
     public_key = VerifyingKey.from_string(bytes.fromhex(old_key), curve=SECP112r2)
     try:
         assert public_key.verify(bytes.fromhex(sig), str(update_time).encode())
@@ -386,32 +386,32 @@ def update_node(ip, update_time, old_key, new_key, port, node_version, sig):
                 node["pub_key"] = new_key
                 node["port"] = port
                 node["version"] = node_version
-        with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "wb") as file:
-            pickle.dump(nodes, file)
+        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
+            json.dump(nodes, file)
             print("NODE UPDATED")
     except:
         return "update invalid"
 
 
 def delete_node(deletion_time, ip, pub_key, sig):
-    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-        nodes = pickle.load(file)
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        nodes = json.load(file)
     public_key = VerifyingKey.from_string(bytes.fromhex(pub_key), curve=SECP112r2)
     try:
         assert public_key.verify(bytes.fromhex(sig), str(deletion_time).encode())
         for node in nodes:
             if node["ip"] == ip and node["pub_key"] == pub_key:
                 nodes.remove(node)
-        with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "wb") as file:
-            pickle.dump(nodes, file)
+        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
+            json.dump(nodes, file)
     except:
         return "cancel invalid"
 
 
 
 def version_update(ip, ver):
-    with open(f"{os.path.dirname(__file__)}/info/Nodes.pickle", "rb") as file:
-        nodes = pickle.load(file)
+    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+        nodes = json.load(file)
     for nod in nodes:
         if nod["ip"] == ip:
             nod["version"] = ver
