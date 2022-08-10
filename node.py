@@ -155,7 +155,7 @@ def request_reader(type, ip="192.168.68.1"):
             line = line.split(" ")
 
             if line[0] == "" or line[0] == "\n":
-                del line  # delete blank lines
+                lines.remove(line)  # delete blank lines
 
             elif line[1] in nreq_protocol:
                 nreq_lines.append(" ".join(line))
