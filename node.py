@@ -433,10 +433,48 @@ class ValueTypeError(NodeError):
 class UnrecognisedArg(NodeError):
     pass
 
-#  TODO add AI_JOB protocols and make better
-def message_handler(message):
+def check_float(value):
     try:
-        if isinstance(message,str):
+        float(value)
+        if float(value) < 0:
+            raise ValueTypeError
+        if value.isdigit():
+            raise ValueTypeError
+        return True
+    except ValueError:
+        return False
+
+
+def check_int(value):
+    if value.isdigit():
+        return True
+    else:
+        return False
+
+
+#  TODO add AI_JOB protocols
+def message_handler(message):
+    """
+    All messages are in the form of "<ip> PROTOCOL <args...>"
+
+    HELLO <ip> <port> <pub_key> <version> <node_type> <signature>
+    UPDATE <ip> <update_time> <old_key> <new_key> <port> <version> <signature>
+    DELETE <ip> <deletion_time> <public_key> <signature>
+    GET_NODES <ip>
+    NREQ <ip> <nodes>
+    BLOCKCHAIN? <ip>
+    BREQ <ip> <blockchain>
+    VALID <ip> <block_index> <validation_time>
+    TRANS_INVALID <block_index> <transaction_index>
+    TRANS <ip> <transaction_time> <sender_public_key> <recipient_public_key> <transaction_value> <signature>
+    STAKE <ip> <staking_time> <public_key> <stake_value> <signature>
+    UNSTAKE <ip> <unstaking_time> <public_key> <unstake_value> <signature>
+    ONLINE? <ip>
+    ERROR <ip> <error_message>
+    yh <ip>
+    """
+    try:
+        if isinstance(message, str):
             message = message.split(" ")
         protocol = message[1]
     except IndexError:
@@ -445,58 +483,46 @@ def message_handler(message):
     node_types = ["Lite", "Blockchain", "AI", "dist"]
 
     if protocol == "GET_NODES":
-        # host, GET_NODES
         if len(message) != 2:
-            raise UnrecognisedArg("number of args given incorrect")
+            raise UnrecognisedArg(f"number of args given incorrect during {protocol}")
 
     elif protocol == "HELLO":
         # host, HELLO, announcement_time, public key, port, version, node type, sig
         if len(message) != 8:
             raise UnrecognisedArg("number of args given incorrect")
 
-        try:
-            float(message[2])
-            if "." not in message[2]:
-                Exception()
-        except:
+        if not check_float(message[2]):
             raise ValueTypeError("time not given as float")
 
         if len(message[3]) != 56:
             raise UnrecognisedArg("Public Key is the wrong size")
 
-        try:
-            port = int(message[4])
-        except:
+        if not check_int(message[4]):
             raise ValueTypeError("port not given as int")
+        else:
+            port = int(message[4])
 
         if not port > 0 and port < 65535:
             raise ValueTypeError("TCP port out of range")
 
-        try:
-            float(message[5])
-            if "." not in message[5]:
-                Exception()
-        except:
+        if not check_float(message[5]):
             raise ValueTypeError("version not given as float")
 
         if message[6] not in node_types:
             raise UnrecognisedArg("Node Type Unknown")
+
+        if len(message[7]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
 
     elif protocol == "VALID":
         # host, VALID , block index, time of validation
         if len(message) != 4:
             raise UnrecognisedArg("number of args given incorrect")
 
-        try:
-            int(message[2])
-        except:
+        if not check_int(message[2]):
             raise ValueTypeError("Block Index not given as int")
 
-        try:
-            float(message[3])
-            if "." not in message[3]:
-                Exception()
-        except:
+        if not check_float(message[3]):
             raise ValueTypeError("time not given as float")
 
     elif protocol == "TRANS_INVALID":
@@ -504,14 +530,10 @@ def message_handler(message):
         if len(message) != 4:
             raise UnrecognisedArg("number of args given incorrect")
 
-        try:
-            int(message[2])
-        except:
+        if not check_int(message[2]):
             raise ValueTypeError("Block Index not given as int")
 
-        try:
-            int(message[3])
-        except:
+        if not check_int(message[3]):
             raise ValueTypeError("Transaction Index not given as int")
 
     elif protocol == "ONLINE?":
@@ -525,55 +547,59 @@ def message_handler(message):
             raise UnrecognisedArg("number of args given incorrect")
 
     elif protocol == "UPDATE":
-        # host, UPDATE, update time, public key, port, version, sig
+        # host, UPDATE, update time, old public key, new public key, port, version, sig
         if len(message) != 7:
             raise UnrecognisedArg("number of args given incorrect")
 
-        try:
-            float(message[2])
-            if "." not in message[2]:
-                Exception()
-        except:
+        if not check_float(message[2]):
             raise ValueTypeError("time not given as float")
 
         if len(message[3]) != 56:
-            raise UnrecognisedArg("Public Key is the wrong size")
+            raise UnrecognisedArg("Old Public Key is the wrong size")
 
-        try:
-            port = int(message[4])
-        except:
+        if len(message[4]) != 56:
+            raise UnrecognisedArg("New Public Key is the wrong size")
+
+        if not check_int(message[5]):
             raise ValueTypeError("port not given as int")
+        else:
+            port = int(message[5])
 
         if not port >= 0 and port < 65535:
             raise ValueTypeError("TCP port out of range")
 
-        try:
-            float(message[5])
-            if "." not in message[5]:
-                Exception()
-        except:
+        if check_float(message[6]):
             raise ValueTypeError("version not given as float")
+
+        if len(message[7]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
 
     elif protocol == "DELETE":
         # host, DELETE, time, public key, sig
         if len(message) != 5:
             raise UnrecognisedArg("number of args given incorrect")
 
+        if not check_float(message[2]):
+            raise ValueTypeError("time not given as float")
+
         if len(message[3]) != 56:
             raise UnrecognisedArg("Public Key is the wrong size")
 
+        if len(message[4]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
+
     elif protocol == "BREQ":
-        # host, BREQ, Blockchain
+        # host, BREQ, blockchain
         try:
             ast.literal_eval(message[2])
-        except:
+        except ValueError:
             raise ValueTypeError("Blockchain not given as Blockchain")
 
     elif protocol == "NREQ":
-        # host, NREQ, Nodes
+        # host, NREQ, nodes
         try:
             ast.literal_eval(message[2])
-        except:
+        except ValueError:
             raise ValueTypeError("Blockchain not given as Node List")
 
     elif protocol == "TRANS":
@@ -581,11 +607,7 @@ def message_handler(message):
         if len(message) != 7:
             raise UnrecognisedArg("number of args given incorrect")
 
-        try:
-            float(message[2])
-            if "." not in message[2]:
-                Exception()
-        except:
+        if not check_float(message[2]):
             raise ValueTypeError("time not given as float")
 
         if len(message[3]) != 56:
@@ -594,12 +616,11 @@ def message_handler(message):
         if len(message[4]) != 56:
             raise UnrecognisedArg("Receivers Public Key is the wrong size")
 
-        try:
-            float(message[5])
-            if "." not in message[5]:
-                Exception()
-        except:
-            raise ValueTypeError("amount not given as float")
+        if not check_float(message[5]):
+            raise ValueTypeError("Amount not given as float")
+
+        if len(message[6]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
 
     elif protocol == "ERROR":
         pass
@@ -608,12 +629,37 @@ def message_handler(message):
         pass
 
     elif protocol == "STAKE":
-        pass
+        # host, STAKE, time of stake, public key, amount, sig
+        if len(message) != 6:
+            raise UnrecognisedArg("number of args given incorrect")
+
+        if not check_float(message[2]):
+            raise ValueTypeError("time not given as float")
+
+        if len(message[3]) != 56:
+            raise UnrecognisedArg("Public Key is the wrong size")
+
+        if not check_float(message[4]):
+            raise ValueTypeError("Stake value not given as float")
+
+        if len(message[5]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
 
     elif protocol == "UNSTAKE":
-        pass
+        if len(message) != 6:
+            raise UnrecognisedArg("number of args given incorrect")
 
-    #elif protocol == ""
+        if not check_float(message[2]):
+            raise ValueTypeError("time not given as float")
+
+        if len(message[3]) != 56:
+            raise UnrecognisedArg("Public Key is the wrong size")
+
+        if not check_float(message[4]):
+            raise ValueTypeError("Unstake value not given as float")
+
+        if len(message[5]) != 56:
+            raise UnrecognisedArg("Signature is the wrong size")
 
     else:
         raise UnrecognisedCommand("protocol unrecognised")

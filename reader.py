@@ -34,6 +34,12 @@ def read():
                     print("DELETE")
                     node.delete_node(float(message[2]), message[0], message[3], message[4])
 
+                elif message[1] == "ERROR": # TODO add raise error with type
+                    print("ERROR")
+                    print(message[2])
+                    continue
+                    pass
+
                 else:
                     pass
 
