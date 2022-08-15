@@ -568,7 +568,7 @@ def message_handler(message):
         if not port >= 0 and port < 65535:
             raise ValueTypeError("TCP port out of range")
 
-        if check_float(message[6]):
+        if not check_float(message[6]):
             raise ValueTypeError("version not given as float")
 
         if len(message[7]) != 56:

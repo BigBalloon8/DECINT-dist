@@ -6,7 +6,7 @@ import pickle
 
 
 def read():
-    time.sleep(60)
+    #time.sleep(60)
     print("---READER STARTED---")
     ip = get('https://api.ipify.org').text
     while True:
@@ -17,7 +17,7 @@ def read():
                 message = message.split(" ")
                 try:
                     node.message_handler(message)
-                except Exception as e:
+                except node.NodeError as e:
                     node.send(message[0], f"ERROR {e}")
                     print(message[1], e)
                     continue
@@ -34,11 +34,10 @@ def read():
                     print("DELETE")
                     node.delete_node(float(message[2]), message[0], message[3], message[4])
 
-                elif message[1] == "ERROR": # TODO add raise error with type
+                elif message[1] == "ERROR":  # TODO add raise error with type
                     print("ERROR")
                     print(message[2])
                     continue
-                    pass
 
                 else:
                     pass
