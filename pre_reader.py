@@ -7,6 +7,7 @@ def read():
     print("---ONLINE READER STARTED---")
     while True:
         online_lines = node.request_reader("ONLINE")
+        # TODO recombine reader and online reader
         if online_lines:
             for message in online_lines:
                 message = message.split(" ")
