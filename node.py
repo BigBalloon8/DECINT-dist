@@ -285,12 +285,8 @@ async def send_to_all_no_dist(message):
     """
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         all_nodes = json.load(file)
-    loop = asyncio.get_event_loop()
-    for node_ in [node_ for node_ in all_nodes if node_["node_type"] != "dist"]:
-        asyncio.ensure_future(async_send(node_["ip"], message, port=node_["port"], send_all=True))
-    await asyncio.gather(*asyncio.Task.all_tasks())  # wait for all to finish
-    loop.close()
-
+    for f in asyncio.as_completed([async_send(node_["ip"], message, port=node_["port"], send_all=True) for node_ in all_nodes if node_["node_type"]!="dist"]):
+        result = await f
 
 def announce(pub_key, port, version, node_type, priv_key):
     announcement_time = str(time.time())
