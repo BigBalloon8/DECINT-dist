@@ -21,6 +21,8 @@ def receive():
     message is split into array the first value the type of message the second value is the message
     """
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
+
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("", 1379))
     server.listen()
@@ -42,6 +44,7 @@ def send(host, message, port=1379, send_all=False):
     this process is skipped if send to all for speed
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
     try:
         client.connect((host, port))
         client.send(message.encode("utf-8"))
@@ -69,6 +72,8 @@ async def async_send(host, message, port=1379, send_all=False):
     this process is skipped if send to all for speed
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
+
     try:
         client.connect((host, port))
         client.send(message.encode("utf-8"))
@@ -467,7 +472,8 @@ def message_handler(message):
     UNSTAKE <ip> <unstaking_time> <public_key> <unstake_value> <signature>
     ONLINE? <ip>
     ERROR <ip> <error_message>
-    yh <ip>
+    BLOCKCHAINLEN? <ip>
+    BLENREQ <ip> <number_of_chunks>
     """
     try:
         if isinstance(message, str):
@@ -511,8 +517,9 @@ def message_handler(message):
             raise UnrecognisedArg("Signature is the wrong size")
 
     elif protocol == "VALID":
-        # host, VALID , block index, time of validation
-        if len(message) != 4:
+        # host, VALID , block index, time of validation, block
+        return # just for testing
+        if len(message) != 5:
             raise UnrecognisedArg("number of args given incorrect")
 
         if not check_int(message[2]):
@@ -520,6 +527,11 @@ def message_handler(message):
 
         if not check_float(message[3]):
             raise ValueTypeError("time not given as float")
+
+        try:
+            ast.literal_eval(message[4])
+        except:
+            raise ValueTypeError("BLock is not given as block")
 
     elif protocol == "TRANS_INVALID":
         # host, TRANS_INVALID, Block Index, Transaction invalid
@@ -539,8 +551,11 @@ def message_handler(message):
 
     elif protocol == "BLOCKCHAIN?":
         # host, BLOCKCHAIN?
-        if len(message) != 2:
+        if len(message) != 3:
             raise UnrecognisedArg("number of args given incorrect")
+
+        if not check_int(message[2]):
+            raise ValueTypeError("Chunk Index not given as int")
 
     elif protocol == "UPDATE":
         # host, UPDATE, update time, old public key, new public key, port, version, sig
@@ -656,6 +671,17 @@ def message_handler(message):
 
         if len(message[5]) != 56:
             raise UnrecognisedArg("Signature is the wrong size")
+
+    elif protocol == "BLOCKCHAINLEN?":
+        if len(message) != 2:
+            raise UnrecognisedArg("number of args given incorrect")
+
+    elif protocol == "BLENREQ":
+        if len(message) != 3:
+            raise UnrecognisedArg("number of args given incorrect")
+
+        if not check_int(message[2]):
+            raise ValueTypeError("Blockchain length not given as int")
 
     else:
         raise UnrecognisedCommand("protocol unrecognised")
