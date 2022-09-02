@@ -279,8 +279,13 @@ async def send_to_all(message):
     """
     sends to all nodes
     """
-    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-        all_nodes = json.load(file)
+    while True:
+        try:
+            with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                all_nodes = json.load(file)
+                break
+        except json.decoder.JSONDecodeError:
+            pass
     for f in asyncio.as_completed([async_send(node_["ip"], message, port=node_["port"], send_all=True) for node_ in all_nodes]):
         result = await f
 

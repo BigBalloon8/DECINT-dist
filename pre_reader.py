@@ -18,11 +18,9 @@ def read():
                     print(message[1], e)
                     continue
                 if message[1] == "ONLINE?":
-                    print(f"yh sent to {message[0]}")
-                    node.send(message[0], "yh")
+                    pass
 
                 elif message[1] == "GET_NODES":
-                    print("GET_NODES")
                     node.send_node(message[0])
 
 if __name__ == "__main__":
