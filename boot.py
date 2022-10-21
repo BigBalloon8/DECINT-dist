@@ -27,9 +27,9 @@ def run():
     """
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.submit(reciever.rec)#start recieving
-        executor.submit(pre_reader.read)
+        executor.submit(node.receive)#start recieving
         executor.submit(node.get_nodes).result()#update nodes
+        executor.submit(pre_reader.read)
         executor.submit(reader.read)
         executor.submit(distributor.relay)
 

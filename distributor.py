@@ -10,7 +10,7 @@ import traceback
 def relay():
     try:
         print("---RELAY STARTED---")
-        do_not_send = ["NREQ", "NODES?", "GET_NODES", "ONLINE?", "yh", "ERROR", "BLOCKCHAIN?", "BLOCKCHAINLEN?", "BREQ", "BREQLEN" "HELLO", "UPDATE", "DELETE", "VALID"]
+        dist_protocols = ["TRANS", "STAKE", "UNSTAKE"]
         logging.basicConfig(filename='relay.log', filemode='a', format='%(asctime)s  :  %(message)s', datefmt='%d-%b-%Y %H:%M:%S %p')
         while True:
             with open(f"{os.path.dirname(__file__)}/relay_messages.txt", "r") as file:
@@ -19,14 +19,7 @@ def relay():
             if messages:
                 print("RELAY messages = ", messages)
                 for message in messages:
-                    prot_in = False
-                    logging.info(message)
-                    for protocol in do_not_send:
-                        if protocol in message:
-                            prot_in = True
-                            break
-                            print("prot in")
-                    if not prot_in and len(message.split(" ")) > 2: #greater than <ip> <message>
+                    if message.split(" ")[1] in dist_protocols and len(message.split(" ")) > 2: #greater than <ip> <message>
                         print(f"relaying {message}")
                         asyncio.run(node.send_to_all_no_dist("DIST " + message))
                         logging.info(message)

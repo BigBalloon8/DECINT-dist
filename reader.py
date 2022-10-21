@@ -15,12 +15,6 @@ def read():
             #print(f"NODE LINES: {NODE_Lines}\n")
             for message in NODE_Lines:
                 message = message.split(" ")
-                try:
-                    node.message_handler(message)
-                except node.NodeError as e:
-                    node.send(message[0], f"ERROR {e}")
-                    print(message[1], e)
-                    continue
 
                 if message[1] == "HELLO":
                     node.new_node(float(message[2]), message[0], message[3], int(message[4]), float(message[5]), message[6], message[7])

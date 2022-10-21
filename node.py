@@ -1,16 +1,20 @@
 """
 node
 """
-
 import socket
 import random
 import time
 import ast
+import blockchain
 import time
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import asyncio
 import os
 import json
+from threading import Thread
+import copy
+import traceback
+
 
 __version__ = "1.0"
 
@@ -21,19 +25,102 @@ def receive():
     message is split into array the first value the type of message the second value is the message
     """
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
-
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("", 1379))
     server.listen()
+    message_handle = MessageManager()
     while True:
         try:
             client, address = server.accept()
-            message = client.recv(2**20).decode("utf-8")#.split(" ")
-            server.close()
-            return message, address
+            message = client.recv(2 ** 16).decode("utf-8")  # .split(" ")
+            if "\n" in message:
+                continue
+            print(f"Message from {address} , {message}\n")
+            message_handle.write(address, message)
+            continue
         except Exception as e:
-            print(e)
+            traceback.print_exc()
+
+
+class TimeOutList(): #TODO test in working simulation
+    def __init__(self):
+        self.t_list = list()
+        self.times = list()
+
+    def timeout(self):
+        removed = 0
+        if len(self.t_list) == 0:
+            return
+        for i in range(len(self.t_list)):
+            if time.time()-self.times[i-removed] > 5.0:
+                self.t_list.pop(i-removed)
+                self.times.pop(i-removed)
+                removed +=1
+
+    def __len__(self):
+        return len(self.t_list)
+
+    def append(self, value):
+        self.t_list.append(value)
+        self.times.append(time.time())
+
+    def __setitem__(self,index, value):
+        return self.t_list.__setitem__(index,value)
+
+    def __getitem__(self, index):
+        self.timeout()
+        return self.t_list.__getitem__(index)
+
+    def remove(self, value):
+        self.times.pop(self.t_list.index(value))
+        self.t_list.remove(value)
+
+    def __iter__(self):
+        self.timeout()
+        for i in self.t_list:
+            yield i
+
+    def __delitem__(self, index):
+        self.t_list.__delitem__(index)
+        self.times.__delitem__(index)
+
+    def insert(self, index, value):
+        self.t_list.insert(index, value)
+        self.times.insert(index, time.time())
+
+
+
+class MessageManager:
+    def __init__(self):
+        self.long_messages = TimeOutList()
+
+    def write(self, address, message):
+        if "DIST" in message:
+            with open(f"{os.path.dirname(__file__)}/dist_messages.txt", "a") as file:
+                file.write(f"{address[0]} {message}\n")
+
+        else:
+            if (
+                    " " not in message and "ONLINE?" not in message and "GET_NODES" not in message) or "NREQ" in message:  # TODO clean this up
+                self.long_messages.append((address[0], message))
+
+            else:
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
+                    file.write(f"{address[0]} {message}\n")
+                with open(f"{os.path.dirname(__file__)}/relay_messages.txt", "a+") as file:
+                    file.write(f"{address[0]} {message}\n")
+
+        for i in self.long_messages:
+            if "]]" in i[1] or "]]]" in i[1] or "}]]" in i[1]:
+                # if len([j for j in self.long_messages if j[0] == i[0]]) == len(self.long_messages):
+                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
+                    with open(f"{os.path.dirname(__file__)}/relay_messages.txt", "a+") as relay_file:
+                        complete_message = [k for k in self.long_messages.t_list if k[0] == i[0]]
+                        long_write_lines = ''.join([l[1] for l in complete_message])
+                        file.write(f"{i[0]} {long_write_lines}\n")
+                        relay_file.write(f"{i[0]} {long_write_lines}\n")
+                for m in complete_message:
+                    self.long_messages.remove(m)
 
 
 # send to node
@@ -44,26 +131,26 @@ def send(host, message, port=1379, send_all=False):
     this process is skipped if send to all for speed
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
+
     try:
         client.connect((host, port))
-        client.send(message.encode("utf-8"))
+        client.sendall(message.encode("utf-8"))
         print(f"Message to {host} {message}\n")
-        return
     except ConnectionRefusedError:
-        if not send_all:
-            try:
-                with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-                    nodes = json.load(file)
-                for node in nodes:
-                    if node["ip"] == host:
-                        if not int(node["port"]) == 1379:
-                            client.connect((host, int(node["port"])))
-                            client.send(message.encode("utf-8"))
-                            # print(f"Message to {host} {message}\n")
-                            return
-            except ConnectionRefusedError:
-                return "node offline"
+        if send_all:
+            return
+        try:
+            with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                nodes = json.load(file)
+            for node in nodes:
+                if node["ip"] == host:
+                    if not int(node["port"]) == 1379:
+                        client.connect((host, int(node["port"])))
+                        client.sendall(message.encode("utf-8"))
+                        print(f"Message to {host} {message}\n")
+        except ConnectionRefusedError:
+            return "node offline"
+        client.close()
 
 async def async_send(host, message, port=1379, send_all=False):
     """
@@ -72,45 +159,35 @@ async def async_send(host, message, port=1379, send_all=False):
     this process is skipped if send to all for speed
     """
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) #UDP
-
     try:
         client.connect((host, port))
-        client.send(message.encode("utf-8"))
+        client.sendall(message.encode("utf-8"))
         print(f"Message to {host} {message}\n")
-        return
-    except Exception as e:
+    except ConnectionError:
         if not send_all:
-            if isinstance(e, ConnectionRefusedError):
-                try:
-                    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-                        nodes = json.load(file)
-                    for node in nodes:
-                        if node[1] == host:
-                            if not int(node["port"]) == 1379:
-                                client.connect((host, int(node["port"])))
-                                client.send(message.encode("utf-8"))
-                                print(f"Message to {host} {message}\n")
-                                return
-                except Exception as e:
-                    return "node offline"
+            try:
+                with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                    nodes = json.load(file)
+                for node in nodes:
+                    if node[1] == host:
+                        if not int(node["port"]) == 1379:
+                            client.connect((host, int(node["port"])))
+                            client.sendall(message.encode("utf-8"))
+                            print(f"Message to {host} {message}\n")
+            except ConnectionError:
+                return "node offline"
+
+    client.close()
 
 # check if nodes online
 def online(address):
-    """
-    asks if a node is online and if it is it returns yh
-    """
-    print(address)
-    # socket.setdefaulttimeout(1.0)
     try:
-        send(address, "ONLINE?")
+        send(address, "ONLINE?") #TODO add a way to timeout
         return True
-    except Exception as e:
-        # socket.setdefaulttimeout(3.0)
-        print(e)
+    except TimeoutError:
         return False
 
-def rand_act_node(num_nodes=1):
+def rand_act_node(num_nodes=1, type_=None):
     """
     returns a list of random active nodes which is x length
     """
@@ -121,10 +198,12 @@ def rand_act_node(num_nodes=1):
     while i != num_nodes:  # turn into for loop
         with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
             all_nodes = json.load(file)
+        if type_:
+            all_nodes = [node for node in all_nodes if node["node_type"] == type_]
         me = socket.gethostbyname(socket.gethostname())
         node_index = random.randint(0, len(all_nodes) - 1)
         node = all_nodes[node_index]
-        #print(node)
+        # print(node)
         if node["pub_key"] == key or node["ip"] == me:
             continue
         alive = online(node["ip"])
@@ -137,145 +216,87 @@ def rand_act_node(num_nodes=1):
     else:
         return nodes
 
+def line_remover(del_lines, file_path):
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+    new_lines = [line for line in lines if line.strip("\n") not in del_lines]
+    open(file_path, "w").close()
+    with open(file_path, "a") as file:
+        for line in new_lines:
+            file.write(line)
 
 def request_reader(type, ip="192.168.68.1"):
     """
     reads the recent messages and returns the message of the requested type
     """
-    with open("recent_messages.txt", "r") as file:
+    with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
         lines = file.read().splitlines()
-    nreq_protocol = ["NREQ"]  # node request
-    yh_protocol = ["yh"]
-    trans_protocol = ["TRANS"]
-    breq_protocol = ["BREQ"]
-    pre_protocol = ["ONLINE?", "GET_NODES", "BLOCKCHAIN?"]
+    pre_protocol = ["ONLINE?", "GET_NODES"]
     node_lines = []
     nreq_lines = []
-    yh_lines = []
-    trans_lines = []
-    breq_lines = []
     online_lines = []
+    del_lines = []
     if str(lines) != "[]":
         for line in lines:
             line = line.split(" ")
+            try:
+                message_handler(line)
+            except NodeError as e:
+                print("ERROR LINE: ", [" ".join(line)], e)
+                send(" ".join(line), f"ERROR {e}")
+                del_lines.append(" ".join(line))
+                continue
+            except NotCompleteError:
+                continue
 
             if line[0] == "" or line[0] == "\n":
                 lines.remove(line)  # delete blank lines
 
-            elif line[1] in nreq_protocol:
-                nreq_lines.append(" ".join(line))
-
-            elif line[1] in yh_protocol and line[0] == ip:
-                yh_lines.append(" ".join(line))
-
-            elif line[1] in trans_protocol:
-                trans_lines.append(" ".join(line))
+            elif line[1] == "NREQ":
+                try:
+                    ast.literal_eval(line[2])
+                    nreq_lines.append(" ".join(line))
+                except ValueError:
+                    node_lines.append(" ".join(line))
+                except IndexError:
+                    node_lines.append(" ".join(line))
+                except SyntaxError:
+                    pass
 
             elif line[1] in pre_protocol:
                 online_lines.append(" ".join(line))
 
-            elif line[1] in breq_protocol:
-                breq_lines.append(" ".join(line))
-
             else:
-                node_lines.append(" ".join(line))
+                try:
+                    ast.literal_eval(line[4])
+                    node_lines.append(" ".join(line))
+                except ValueError:
+                    node_lines.append(" ".join(line))
+                except IndexError:
+                    node_lines.append(" ".join(line))
+                except SyntaxError:
+                    pass
 
-        if type == "YH":
-            if len(yh_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    f_line.split(" ")
-                    if not yh_lines[0] in f_line:
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
-            return yh_lines
-
-        elif type == "NODE":
-            if len(node_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    f_line.split(" ")
-                    if not node_lines[0] in f_line:
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
+        if type == "NODE":
+            if len(node_lines) == 0:
+                return node_lines
+            line_remover(node_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return node_lines
 
-        elif type == "NREQ":
-            if len(nreq_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r+") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    f_line.split(" ")
-                    if not nreq_lines[0] in f_line:
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
+        elif type_ == "NREQ":
+            if len(nreq_lines) == 0:
+                return nreq_lines
+            line_remover(nreq_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return nreq_lines
 
-        elif type == "ONLINE":
-            if len(online_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r+") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    f_line.split(" ")
-                    if not online_lines[0] in f_line:
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
+        elif type_ == "ONLINE":
+            if len(online_lines) == 0:
+                return online_lines
+            line_remover(online_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")
             return online_lines
 
-        elif type == "TRANS":
-            if len(trans_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    if not trans_lines[0] in f_line:  # update to check multiple lines to lazy to do rn
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
-            return trans_lines
 
-        elif type == "BREQ":
-            if len(breq_lines) != 0:
-                new_lines = []
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "r") as file:
-                    file_lines = file.readlines()
-                for f_line in file_lines:
-                    if not breq_lines[0] in f_line:  # update to check multiple lines to lazy to do rn
-                        if not f_line.strip("\n") == "":
-                            new_lines.append(f_line)
-                open(f"{os.path.dirname(__file__)}/recent_messages.txt", "w").close()
-                with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a") as file:
-                    for n_line in new_lines:
-                        file.write(n_line)
-            return breq_lines
-
-
-async def send_to_all(message):
+async def send_to_all(message, no_dist=False):
     """
     sends to all nodes
     """
@@ -286,8 +307,11 @@ async def send_to_all(message):
                 break
         except json.decoder.JSONDecodeError:
             pass
-    for f in asyncio.as_completed([async_send(node_["ip"], message, port=node_["port"], send_all=True) for node_ in all_nodes]):
-        result = await f
+        if no_dist:
+            all_nodes = [i for i in all_nodes if i["node_type"] != "dist"]
+    for _ in asyncio.as_completed(
+        [async_send(node["ip"], message, port=node["port"], send_all=True) for node in all_nodes]):
+        result = await _
 
 async def send_to_all_no_dist(message):
     """
@@ -327,36 +351,70 @@ def delete(pub_key, priv_key):
     asyncio.run(send_to_all(f"DELETE {update_time} {pub_key} {sig}"))
 
 
-def get_nodes():
+def get_nodes(nodes=[]):
     print("---GETTING NODES---")
-    node = rand_act_node()
+    pre_nodes = copy.copy(nodes)
+    while True:
+        node = rand_act_node()
+        if node in nodes:
+            break
+            continue
+        else:
+            break
     time.sleep(0.1)
     send(node["ip"], "GET_NODES")
     tries = 0
-    while tries < 10:
-        time.sleep(5)
+    while True:
+        if tries == 10:
+            return get_nodes(pre_nodes)
+        time.sleep(2)
         lines = request_reader("NREQ")
         if lines:
-            for line in lines:
-                print(f"NODE LINE: {line}")
-                line = line.split(" ")
-                nodes = line[2]
-                nodes = ast.literal_eval(nodes)
-                if line[0] == node["ip"]:
-                    with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
-                        json.dump(nodes, file)
-                    print("---NODES RECEIVED---")
-                    print("NODES UPDATED SUCCESSFULLY")
-                    return
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                nodes_1 = ast.literal_eval(line[2])
+                print("---NODES 1 RECEIVED---")
+                break
         else:
             tries += 1
+    nodes.append(node)
+    while True:
+        node = rand_act_node()
+        if node in nodes:
+            break
             continue
+        else:
+            break
+    time.sleep(0.1)
+    send(node["ip"], "GET_NODES")
+    tries = 0
+    while True:
+        if tries == 10:
+            return get_nodes(pre_nodes)
+        time.sleep(2)
+        lines = request_reader("NREQ")
+        if lines:
+            line = lines[0].split(" ")
+            if line[0] == node["ip"]:
+                nodes_2 = ast.literal_eval(line[2])
+                print("---NODES 2 RECEIVED---")
+                break
+        else:
+            tries += 1
+    nodes.append(node)
+    if nodes_1 == nodes_2:
+        with open(f"{os.path.dirname(__file__)}/info/nodes.json", "w") as file:
+            json.dump(nodes_1, file)
+        print("---NODES UPDATED---")
+        return nodes
+    else:
+        return get_nodes(pre_nodes)
 
 
 def send_node(host):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
-        Nodes = json.load(file)
-    str_node = str(Nodes)
+        nodes = json.load(file)
+    str_node = str(nodes)
     str_node = str_node.replace(" ", "")
     send(host, "NREQ " + str_node)
 
@@ -413,7 +471,8 @@ def delete_node(deletion_time, ip, pub_key, sig):
     except:
         return "cancel invalid"
 
-
+def version():
+    asyncio.run(send_to_all(f"VERSION {__version__}"))
 
 def version_update(ip, ver):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
@@ -423,6 +482,11 @@ def version_update(ip, ver):
             nod["version"] = ver
             break
 
+class NotCompleteError(Exception):
+    """
+    Raised when problem with line but the line is needed to be kept in recent messages
+    """
+    pass
 
 class NodeError(Exception):
     pass
@@ -468,24 +532,16 @@ def message_handler(message):
     DELETE <ip> <deletion_time> <public_key> <signature>
     GET_NODES <ip>
     NREQ <ip> <nodes>
-    BLOCKCHAIN? <ip>
-    BREQ <ip> <blockchain>
-    VALID <ip> <block_index> <validation_time>
-    TRANS_INVALID <block_index> <transaction_index>
-    TRANS <ip> <transaction_time> <sender_public_key> <recipient_public_key> <transaction_value> <signature>
-    STAKE <ip> <staking_time> <public_key> <stake_value> <signature>
-    UNSTAKE <ip> <unstaking_time> <public_key> <unstake_value> <signature>
     ONLINE? <ip>
     ERROR <ip> <error_message>
-    BLOCKCHAINLEN? <ip>
-    BLENREQ <ip> <number_of_chunks>
     """
-    try:
-        if isinstance(message, str):
-            message = message.split(" ")
-        protocol = message[1]
-    except IndexError:
-        raise UnrecognisedArg("No Protocol Found")
+    len_1_messages = ["ONLINE?", "GET_NODES"]
+    if len(message) == 2:
+        if message[1] not in len_1_messages:
+            raise UnrecognisedArg("No Protocol Found")
+    if len(message) < 2:
+        raise UnrecognisedArg("number of args given incorrect")
+    protocol = message[1]
 
     node_types = ["Lite", "Blockchain", "AI", "dist"]
 
@@ -521,42 +577,9 @@ def message_handler(message):
         if len(message[7]) != 56:
             raise UnrecognisedArg("Signature is the wrong size")
 
-    elif protocol == "VALID":
-        # host, VALID , block index, time of validation, block
-        return # just for testing
-        if len(message) != 5:
-            raise UnrecognisedArg("number of args given incorrect")
-
-        if not check_int(message[2]):
-            raise ValueTypeError("Block Index not given as int")
-
-        if not check_float(message[3]):
-            raise ValueTypeError("time not given as float")
-
-        try:
-            ast.literal_eval(message[4])
-        except:
-            raise ValueTypeError("BLock is not given as block")
-
-    elif protocol == "TRANS_INVALID":
-        # host, TRANS_INVALID, Block Index, Transaction invalid
-        if len(message) != 4:
-            raise UnrecognisedArg("number of args given incorrect")
-
-        if not check_int(message[2]):
-            raise ValueTypeError("Block Index not given as int")
-
-        if not check_int(message[3]):
-            raise ValueTypeError("Transaction Index not given as int")
-
     elif protocol == "ONLINE?":
         # host, ONLINE?
         if len(message) != 2:
-            raise UnrecognisedArg("number of args given incorrect")
-
-    elif protocol == "BLOCKCHAIN?":
-        # host, BLOCKCHAIN?
-        if len(message) != 3:
             raise UnrecognisedArg("number of args given incorrect")
 
         if not check_int(message[2]):
@@ -604,89 +627,20 @@ def message_handler(message):
         if len(message[4]) != 56:
             raise UnrecognisedArg("Signature is the wrong size")
 
-    elif protocol == "BREQ":
-        # host, BREQ, blockchain
-        try:
-            ast.literal_eval(message[2])
-        except ValueError:
-            raise ValueTypeError("Blockchain not given as Blockchain")
-
     elif protocol == "NREQ":
         # host, NREQ, nodes
         try:
             ast.literal_eval(message[2])
         except ValueError:
-            raise ValueTypeError("Blockchain not given as Node List")
-
-    elif protocol == "TRANS":
-        # host, TRANS, time of transaction, sender public key, receiver public key, amount sent, sig
-        if len(message) != 7:
-            raise UnrecognisedArg("number of args given incorrect")
-
-        if not check_float(message[2]):
-            raise ValueTypeError("time not given as float")
-
-        if len(message[3]) != 56:
-            raise UnrecognisedArg("Senders Public Key is the wrong size")
-
-        if len(message[4]) != 56:
-            raise UnrecognisedArg("Receivers Public Key is the wrong size")
-
-        if not check_float(message[5]):
-            raise ValueTypeError("Amount not given as float")
-
-        if len(message[6]) != 56:
-            raise UnrecognisedArg("Signature is the wrong size")
+            raise ValueTypeError("Nodes not given as Node List")
+        except SyntaxError:
+            raise NotCompleteError("NREQ list not complete yet")
 
     elif protocol == "ERROR":
         pass
 
     elif protocol == "yh":
         pass
-
-    elif protocol == "STAKE":
-        # host, STAKE, time of stake, public key, amount, sig
-        if len(message) != 6:
-            raise UnrecognisedArg("number of args given incorrect")
-
-        if not check_float(message[2]):
-            raise ValueTypeError("time not given as float")
-
-        if len(message[3]) != 56:
-            raise UnrecognisedArg("Public Key is the wrong size")
-
-        if not check_float(message[4]):
-            raise ValueTypeError("Stake value not given as float")
-
-        if len(message[5]) != 56:
-            raise UnrecognisedArg("Signature is the wrong size")
-
-    elif protocol == "UNSTAKE":
-        if len(message) != 6:
-            raise UnrecognisedArg("number of args given incorrect")
-
-        if not check_float(message[2]):
-            raise ValueTypeError("time not given as float")
-
-        if len(message[3]) != 56:
-            raise UnrecognisedArg("Public Key is the wrong size")
-
-        if not check_float(message[4]):
-            raise ValueTypeError("Unstake value not given as float")
-
-        if len(message[5]) != 56:
-            raise UnrecognisedArg("Signature is the wrong size")
-
-    elif protocol == "BLOCKCHAINLEN?":
-        if len(message) != 2:
-            raise UnrecognisedArg("number of args given incorrect")
-
-    elif protocol == "BLENREQ":
-        if len(message) != 3:
-            raise UnrecognisedArg("number of args given incorrect")
-
-        if not check_int(message[2]):
-            raise ValueTypeError("Blockchain length not given as int")
 
     else:
         raise UnrecognisedCommand("protocol unrecognised")

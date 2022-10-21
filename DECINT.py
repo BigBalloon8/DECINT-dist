@@ -67,6 +67,7 @@ def run(d_install, update, delete, run_node, test_install):
         node.get_nodes()
         install_decint.test_install()
         receive.terminate()
+        boot.run()
 
     elif run_node:
         boot.run()

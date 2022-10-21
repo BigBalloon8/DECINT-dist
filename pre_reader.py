@@ -10,7 +10,10 @@ def read():
         # TODO recombine reader and online reader
         if online_lines:
             for message in online_lines:
-                message = message.split(" ")
+                if message and message != " ":
+                    message = message.split(" ")
+                else:
+                    continue
                 try:
                     node.message_handler(message)
                 except Exception as e:
