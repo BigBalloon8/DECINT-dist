@@ -44,8 +44,8 @@ def receive():
 
 class TimeOutList(): #TODO test in working simulation
     def __init__(self):
-        self.t_list = list()
-        self.times = list()
+        self.t_list = []
+        self.times = []
 
     def timeout(self):
         removed = 0
@@ -213,8 +213,7 @@ def rand_act_node(num_nodes=1, type_=None):
 
     if len(nodes) == 1:
         return nodes[0]
-    else:
-        return nodes
+    return nodes
 
 def line_remover(del_lines, file_path):
     with open(file_path, "r") as file:
@@ -249,7 +248,7 @@ def request_reader(type, ip="192.168.68.1"):
             except NotCompleteError:
                 continue
 
-            if line[0] == "" or line[0] == "\n":
+            if line[0] in ("" ,"\n"):
                 lines.remove(line)  # delete blank lines
 
             elif line[1] == "NREQ":
@@ -327,8 +326,8 @@ def announce(pub_key, port, version, node_type, priv_key):
     if not isinstance(priv_key, bytes):
         priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
     sig = str(priv_key.sign(announcement_time.encode()).hex())
-    print(f"HELLO {announcement_time} {pub_key} {str(port)} {version} {node_type} {sig}")
-    asyncio.run(send_to_all(f"HELLO {announcement_time} {pub_key} {str(port)} {version} {node_type} {sig}"))
+    print(f"HELLO {announcement_time} {pub_key} {port} {version} {node_type} {sig}")
+    asyncio.run(send_to_all(f"HELLO {announcement_time} {pub_key} {port} {version} {node_type} {sig}"))
 
 
 def update(old_key, port, version, priv_key, new_key=None):
@@ -338,7 +337,7 @@ def update(old_key, port, version, priv_key, new_key=None):
     if not isinstance(priv_key, bytes):
         priv_key = SigningKey.from_string(bytes.fromhex(priv_key), curve=SECP112r2)
     sig = str(priv_key.sign(update_time.encode()).hex())
-    asyncio.run(send_to_all(f"UPDATE {update_time} {old_key} {new_key} {str(port)} {version} {sig}"))
+    asyncio.run(send_to_all(f"UPDATE {update_time} {old_key} {new_key} {port} {version} {sig}"))
     with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "w") as file:
         file.write(new_key)
 
@@ -407,8 +406,7 @@ def get_nodes(nodes=[]):
             json.dump(nodes_1, file)
         print("---NODES UPDATED---")
         return nodes
-    else:
-        return get_nodes(pre_nodes)
+    return get_nodes(pre_nodes)
 
 
 def send_node(host):
@@ -518,8 +516,7 @@ def check_float(value):
 def check_int(value):
     if value.isdigit():
         return True
-    else:
-        return False
+    return False
 
 
 #  TODO add AI_JOB protocols
