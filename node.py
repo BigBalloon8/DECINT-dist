@@ -5,7 +5,6 @@ import socket
 import random
 import time
 import ast
-import blockchain
 import time
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import asyncio
@@ -111,7 +110,7 @@ class MessageManager:
                     file.write(f"{address[0]} {message}\n")
 
         for i in self.long_messages:
-            if "]]" in i[1] or "]]]" in i[1] or "}]]" in i[1]:
+            if "]]" in i[1] or "]]]" in i[1] or "}]]" in i[1] or "}]" in i[1]:
                 # if len([j for j in self.long_messages if j[0] == i[0]]) == len(self.long_messages):
                 with open(f"{os.path.dirname(__file__)}/recent_messages.txt", "a+") as file:
                     with open(f"{os.path.dirname(__file__)}/relay_messages.txt", "a+") as relay_file:
@@ -225,7 +224,7 @@ def line_remover(del_lines, file_path):
         for line in new_lines:
             file.write(line)
 
-def request_reader(type, ip="192.168.68.1"):
+def request_reader(type_, ip="192.168.68.1"):
     """
     reads the recent messages and returns the message of the requested type
     """
@@ -277,7 +276,7 @@ def request_reader(type, ip="192.168.68.1"):
                 except SyntaxError:
                     pass
 
-        if type == "NODE":
+        if type_ == "NODE":
             if len(node_lines) == 0:
                 return node_lines
             line_remover(node_lines + del_lines, f"{os.path.dirname(__file__)}/recent_messages.txt")

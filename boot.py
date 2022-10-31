@@ -1,6 +1,5 @@
 import os
 import node
-import reciever
 import reader
 import pre_reader
 import concurrent.futures

@@ -7,7 +7,6 @@ from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import boot
 import os
 from multiprocessing import Process
-import reciever
 
 
 @click.command()
@@ -19,7 +18,7 @@ import reciever
 def run(d_install, update, delete, run_node, test_install):
 
     if d_install:
-        receive = Process(target=reciever.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes()
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
@@ -32,7 +31,7 @@ def run(d_install, update, delete, run_node, test_install):
         receive.terminate()
 
     elif update:
-        receive = Process(target=reciever.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes()
         click.echo("In order to update your Node please enter a bit of information")
@@ -50,7 +49,7 @@ def run(d_install, update, delete, run_node, test_install):
         receive.terminate()
 
     elif delete:
-        receive = Process(target=reciever.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes()
         click.echo("In order to delete your Node please enter a bit of information")
@@ -62,7 +61,7 @@ def run(d_install, update, delete, run_node, test_install):
         receive.terminate()
 
     elif test_install:
-        receive = Process(target=reciever.rec)
+        receive = Process(target=node.receive)
         receive.start()
         node.get_nodes()
         install_decint.test_install()
