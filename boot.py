@@ -25,7 +25,7 @@ def run():
         pass#wont work after first time ill come up with better way later
     """
 
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ProcessPoolExecutor() as executor:
         executor.submit(node.receive)#start recieving
         executor.submit(node.get_nodes).result()#update nodes
         executor.submit(pre_reader.read)
