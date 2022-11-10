@@ -6,6 +6,14 @@ import traceback
 
 
 # send to all non dist nodes
+def line_remover(del_lines, file_path):
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+    new_lines = [line for line in lines if line.strip("\n") not in del_lines]
+    open(file_path, "w").close()
+    with open(file_path, "a") as file:
+        for line in new_lines:
+            file.write(line)
 
 def relay():
     try:
@@ -15,7 +23,7 @@ def relay():
         while True:
             with open(f"{os.path.dirname(__file__)}/relay_messages.txt", "r") as file:
                 messages = file.read().splitlines()
-            open(f"{os.path.dirname(__file__)}/relay_messages.txt", "w").close()
+            line_remover(del_lines=messages, file_path=f"{os.path.dirname(__file__)}/relay_messages.txt")
             if messages:
                 print("RELAY messages = ", messages)
                 for message in messages:

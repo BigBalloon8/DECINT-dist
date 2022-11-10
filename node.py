@@ -99,8 +99,7 @@ class MessageManager:
                 file.write(f"{address[0]} {message}\n")
 
         else:
-            if (
-                    " " not in message and "ONLINE?" not in message and "GET_NODES" not in message) or "NREQ" in message:  # TODO clean this up
+            if (" " not in message and "ONLINE?" not in message and "GET_NODES" not in message) or "NREQ" in message:  # TODO clean this up
                 self.long_messages.append((address[0], message))
 
             else:
