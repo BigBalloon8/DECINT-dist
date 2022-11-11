@@ -6,7 +6,8 @@ import pickle
 from ecdsa import SigningKey, VerifyingKey, SECP112r2
 import boot
 import os
-from multiprocessing import Process
+from multiprocessing import Process, Queue
+
 
 
 @click.command()
@@ -18,9 +19,10 @@ from multiprocessing import Process
 def run(d_install, update, delete, run_node, test_install):
 
     if d_install:
-        receive = Process(target=node.receive)
+        queue = Queue()
+        receive = Process(target=node.receive, args=(queue,None,None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([],queue)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
             key = file.read()
         if not key:
@@ -31,9 +33,10 @@ def run(d_install, update, delete, run_node, test_install):
         receive.terminate()
 
     elif update:
-        receive = Process(target=node.receive)
+        queue = Queue()
+        receive = Process(target=node.receive, args=(queue, None, None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([], queue)
         click.echo("In order to update your Node please enter a bit of information")
         time.sleep(2)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -49,9 +52,10 @@ def run(d_install, update, delete, run_node, test_install):
         receive.terminate()
 
     elif delete:
-        receive = Process(target=node.receive)
+        queue = Queue()
+        receive = Process(target=node.receive, args=(queue, None, None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([], queue)
         click.echo("In order to delete your Node please enter a bit of information")
         time.sleep(2)
         with open(f"{os.path.dirname(__file__)}/info/Public_key.txt", "r") as file:
@@ -61,9 +65,10 @@ def run(d_install, update, delete, run_node, test_install):
         receive.terminate()
 
     elif test_install:
-        receive = Process(target=node.receive)
+        queue = Queue()
+        receive = Process(target=node.receive, args=(queue, None, None,))
         receive.start()
-        node.get_nodes()
+        node.get_nodes([], queue)
         install_decint.test_install()
         receive.terminate()
         boot.run()
