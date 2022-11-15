@@ -618,9 +618,6 @@ def message_handler(message):
         if len(message) != 2:
             raise UnrecognisedArg("number of args given incorrect")
 
-        if not check_int(message[2]):
-            raise ValueTypeError("Chunk Index not given as int")
-
     elif protocol == "UPDATE":
         # host, UPDATE, update time, old public key, new public key, port, version, sig
         if len(message) != 7:
