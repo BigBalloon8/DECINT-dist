@@ -13,6 +13,7 @@ import json
 import threading
 import copy
 import traceback
+import textwrap
 
 
 
@@ -102,11 +103,10 @@ class MessageManager:
                 # file.write(f"{address[0]} {message}\n")
 
         for i in self.long_messages:
-            if "]]" in i[1] or "]]]" in i[1] or "}]]" in i[1] or "}]" in i[1]:
-                # if len([j for j in self.long_messages if j[0] == i[0]]) == len(self.long_messages):
-                complete_message = [k for k in self.long_messages.t_list if k[0] == i[0]]
-                long_write_lines = ''.join([l[1] for l in complete_message])
-                message = f"{i[0]} {long_write_lines}".split(" ")
+            if "END" in i[1]:
+                complete_message = [k for k in self.long_messages.t_list if i[0] == k[0]]
+                long_write_lines = ''.join([j[1] for j in complete_message])
+                message = f"{i[0]} {long_write_lines[:-3]}".split(" ")  # [:-4] is to remove END
 
                 try:
                     message_handler(message)
@@ -291,30 +291,27 @@ def request_reader(type_, ip="192.168.68.1"):
             if line[0] in ("" ,"\n"):
                 lines.remove(line)  # delete blank lines
 
+
             elif line[1] == "NREQ":
                 try:
-                    ast.literal_eval(line[2])
+                    json.loads(line[2])
                     nreq_lines.append(" ".join(line))
-                except ValueError:
-                    node_lines.append(" ".join(line))
-                except IndexError:
-                    node_lines.append(" ".join(line))
-                except SyntaxError:
+                except json.decoder.JSONDecodeError:
                     pass
+                else:
+                    nreq_lines.append(" ".join(line))
 
             elif line[1] in pre_protocol:
                 online_lines.append(" ".join(line))
 
             else:
                 try:
-                    ast.literal_eval(line[4])
+                    json.loads(line[4])
                     node_lines.append(" ".join(line))
-                except ValueError:
-                    node_lines.append(" ".join(line))
-                except IndexError:
-                    node_lines.append(" ".join(line))
-                except SyntaxError:
+                except json.decoder.JSONDecodeError:
                     pass
+                else:
+                    node_lines.append(" ".join(line))
 
         if type_ == "NODE":
             if len(node_lines) == 0:
@@ -411,7 +408,7 @@ def get_nodes(nodes, queue):
         if line:
             line = line.split(" ")
             if line[0] == node["ip"]:
-                nodes_1 = ast.literal_eval(line[2])
+                nodes_1 = json.loads(line[2])
                 print("---NODES 1 RECEIVED---")
                 break
         else:
@@ -435,7 +432,7 @@ def get_nodes(nodes, queue):
         if line:
             line = line.split(" ")
             if line[0] == node["ip"]:
-                nodes_2 = ast.literal_eval(line[2])
+                nodes_2 = json.loads(line[2])
                 print("---NODES 2 RECEIVED---")
                 break
         else:
@@ -451,9 +448,11 @@ def get_nodes(nodes, queue):
 def send_node(host):
     with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
         nodes = json.load(file)
-    str_node = str(nodes)
+    str_node = json.dumps(nodes)
     str_node = str_node.replace(" ", "")
-    send(host, "NREQ " + str_node)
+    messages = textwrap.wrap("NREQ " + str_node, 5000)
+    for message_ in messages:
+        send(host, message_)
 
 
 def new_node(initiation_time, ip, pub_key, port, node_version, node_type, sig):
@@ -660,14 +659,14 @@ def message_handler(message):
         if len(message[4]) != 56:
             raise UnrecognisedArg("Signature is the wrong size")
 
+
     elif protocol == "NREQ":
         # host, NREQ, nodes
         try:
-            ast.literal_eval(message[2])
-        except ValueError:
-            raise ValueTypeError("Nodes not given as Node List")
-        except SyntaxError:
-            raise NotCompleteError("NREQ list not complete yet")
+            if not isinstance(json.loads(message[2]), list):
+                raise ValueTypeError("Blockchain not given as Blockchain")
+        except json.decoder.JSONDecodeError:
+            raise NotCompleteError("Blockchain not complete yet")
 
     elif protocol == "TRANS":
         # host, TRANS, time of transaction, sender public key, receiver public key, amount sent, sig

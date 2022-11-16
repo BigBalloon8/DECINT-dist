@@ -3,6 +3,9 @@ import time
 from requests import get
 import pickle
 #import blockchain
+import os
+import json
+import textwrap
 
 
 def read(queue):
@@ -30,7 +33,14 @@ def read(queue):
                 continue
 
             elif message[1] == "GET_NODES":
-                node.send_node(message[0])
+                with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
+                    nodes = json.load(file)
+                str_node = json.dumps(nodes)
+                str_node = str_node.replace(" ", "")
+                messages = textwrap.wrap("NREQ " + str_node, 5000)
+                for message_ in messages[:-1]:
+                    node.send(message[0], message_)
+                node.send(message[0], messages[-1] + "END")
 
             else:
                 pass
