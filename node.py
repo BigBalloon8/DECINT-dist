@@ -103,7 +103,7 @@ class MessageManager:
                 # file.write(f"{address[0]} {message}\n")
 
         for i in self.long_messages:
-            if "END" in i[1]:
+            if i[1][-3:] == "END":
                 complete_message = [k for k in self.long_messages.t_list if i[0] == k[0]]
                 long_write_lines = ''.join([j[1] for j in complete_message])
                 message = f"{i[0]} {long_write_lines[:-3]}".split(" ")  # [:-4] is to remove END
