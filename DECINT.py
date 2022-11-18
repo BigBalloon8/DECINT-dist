@@ -20,7 +20,7 @@ def run(d_install, update, delete, run_node, test_install):
 
     if d_install:
         queue = Queue()
-        receive = Process(target=node.receive, args=(queue,None,None,))
+        receive = Process(target=node.receive_with_thread, args=(queue,None,None,))
         receive.start()
         node.get_nodes([],queue)
         with open(f"{os.path.dirname(__file__)}./info/Public_key.txt", "r") as file:
@@ -34,7 +34,7 @@ def run(d_install, update, delete, run_node, test_install):
 
     elif update:
         queue = Queue()
-        receive = Process(target=node.receive, args=(queue, None, None,))
+        receive = Process(target=node.receive_with_thread, args=(queue, None, None,))
         receive.start()
         node.get_nodes([], queue)
         click.echo("In order to update your Node please enter a bit of information")
@@ -53,7 +53,7 @@ def run(d_install, update, delete, run_node, test_install):
 
     elif delete:
         queue = Queue()
-        receive = Process(target=node.receive, args=(queue, None, None,))
+        receive = Process(target=node.receive_with_thread, args=(queue, None, None,))
         receive.start()
         node.get_nodes([], queue)
         click.echo("In order to delete your Node please enter a bit of information")
@@ -66,7 +66,7 @@ def run(d_install, update, delete, run_node, test_install):
 
     elif test_install:
         queue = Queue()
-        receive = Process(target=node.receive, args=(queue, None, None,))
+        receive = Process(target=node.receive_with_thread, args=(queue, None, None,))
         receive.start()
         node.get_nodes([], queue)
         install_decint.test_install()
