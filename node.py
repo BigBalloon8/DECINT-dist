@@ -122,13 +122,14 @@ class MessageManager:
                 for m in complete_message:
                     self.long_messages.remove(m)
 
-def message_manager_procces(message_manager: MessageManager, message_pipeline):
+
+def message_manager_process(message_manager: MessageManager, message_pipeline):  # works as thread as well
     while True:
         message_manager.write(*message_pipeline.recv())
 
 
 # recieve from nodes
-def receive(req_queue, trans_queue, process_queue, thread_queue):
+def receive(req_queue, message_queue, relay_queue):
     """
     message is split into array the first value the type of message the second value is the message
     """
@@ -136,9 +137,9 @@ def receive(req_queue, trans_queue, process_queue, thread_queue):
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("", 1379))
     server.listen()
-    message_handle = MessageManager(req_queue, trans_queue, process_queue, thread_queue)
+    message_handle = MessageManager(req_queue, message_queue, relay_queue)
     receive_pipe, send_pipe = multiprocessing.Pipe()
-    p = multiprocessing.Process(target=message_manager_procces, args=(message_handle, receive_pipe))
+    p = multiprocessing.Process(target=message_manager_process, args=(message_handle, receive_pipe))
     p.start()
     while True:
         try:
@@ -148,7 +149,7 @@ def receive(req_queue, trans_queue, process_queue, thread_queue):
         except Exception as e:
             traceback.print_exc()
 
-def receive_with_thread(req_queue, trans_queue, process_queue, thread_queue): #allows proccess to be closed properly
+def receive_with_thread(req_queue, message_queue, relay_queue): #allows proccess to be closed properly
     """
     message is split into array the first value the type of message the second value is the message
     """
@@ -156,9 +157,9 @@ def receive_with_thread(req_queue, trans_queue, process_queue, thread_queue): #a
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("", 1379))
     server.listen()
-    message_handle = MessageManager(req_queue, trans_queue, process_queue, thread_queue)
+    message_handle = MessageManager(req_queue, message_queue, relay_queue)
     receive_pipe, send_pipe = multiprocessing.Pipe()
-    p = threading.Thread(target=message_manager_procces, args=(message_handle, receive_pipe))
+    p = threading.Thread(target=message_manager_process, args=(message_handle, receive_pipe))
     p.start()
     while True:
         try:
