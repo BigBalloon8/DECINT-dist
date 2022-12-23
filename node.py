@@ -1,6 +1,7 @@
 """
 node
 """
+import hashlib
 import socket
 import random
 import time
@@ -103,10 +104,13 @@ class MessageManager:
                 # file.write(f"{address[0]} {message}\n")
 
         for i in self.long_messages:
-            if i[1][-3:] == "END":
+            if i[1][-67:-64] == "END":
                 complete_message = [k for k in self.long_messages.t_list if i[0] == k[0]]
-                long_write_lines = ''.join([j[1] for j in complete_message])
-                message = f"{i[0]} {long_write_lines[:-3]}".split(" ")  # [:-4] is to remove END
+                if message_hash(" ".join([k[1] for k in complete_message])[:-67]) == i[1][-64:]:
+                    long_write_lines = ''.join([j[1] for j in complete_message])
+                else:
+                    continue
+                message = f"{i[0]} {long_write_lines[:-67]}".split(" ")
 
                 try:
                     message_handler(message)
@@ -523,6 +527,9 @@ def version_update(ip, ver):
         if nod["ip"] == ip:
             nod["version"] = ver
             break
+
+def message_hash(message):
+    return hashlib.sha256(message.encode()).hexdigest()
 
 class NotCompleteError(Exception):
     """

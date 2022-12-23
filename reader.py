@@ -32,15 +32,16 @@ def read(queue):
                 print(message[2])
                 continue
 
+
             elif message[1] == "GET_NODES":
                 with open(f"{os.path.dirname(__file__)}/info/nodes.json", "r") as file:
                     nodes = json.load(file)
-                str_node = json.dumps(nodes)
-                str_node = str_node.replace(" ", "")
+                str_node = json.dumps(nodes).replace(" ", "")
+                message_hash = node.message_hash("NREQ " + str_node)
                 messages = textwrap.wrap("NREQ " + str_node, 5000)
                 for message_ in messages[:-1]:
                     node.send(message[0], message_)
-                node.send(message[0], messages[-1] + "END")
+                node.send(message[0], messages[-1] + "END" + message_hash)
 
             else:
                 pass
